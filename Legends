@@ -1,4 +1,4 @@
--- Stuff i havent added that i really want to add [pcld esc,break target holdable, see target profile, working loopkill, gucci that i will probably make most of these tomorrow]
+-- Stuff i havent added that i really want to add [Gucci as of rn]
 
 while not game:IsLoaded() do task.wait() end
 
@@ -82,7 +82,7 @@ if dbReady and _myPlayer and not _G.HKv2_SessionLogged then
     end)
 end
 
--- ── UI Loader (HKv2 custom loader) ──────────────────────────────────────────
+
 getgenv().gethui = function() return game.CoreGui end
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/HKsizzleboi12/highkey-ui-v2/refs/heads/main/Idkloader"))()
 task.delay(0.5, function()
@@ -414,118 +414,81 @@ local hkProfileInstance = nil
 PlayersTab:AddSection({ Name = "Server Players" })
 local hkPlrNames = {}
 for _,p in ipairs(Players:GetPlayers()) do
-    table.insert(
-        hkPlrNames,
-        p.DisplayName .. " (" .. p.Name .. ")"
-    )
+    table.insert(hkPlrNames, p.DisplayName .. " (@" .. p.Name .. ")")
 end
 
-
-local HKprofilecardheader = PlayersTab:AddParagraph("", "")
-local HKprofilecardstats  = PlayersTab:AddParagraph("", "")
-local HKprofilecardsocial  = PlayersTab:AddParagraph("", "")
-local HKprofilecardbio     = PlayersTab:AddParagraph("", "")
-HKprofilecardstats:Set("", "")
-HKprofilecardsocial:Set("", "")
-HKprofilecardbio:Set("", "")
 local function HK_ParseJsonString(HK_Str)
     if not HK_Str then return nil end
     local HK_Success, HK_Data = pcall(function() return HttpService:JSONDecode(HK_Str) end)
     return HK_Success and HK_Data or nil
 end
 
-local function resetProfileCards()
-    HKprofilecardheader:Set("Select Player", "")
-    HKprofilecardheader:SetAvatar("")
 
-    HKprofilecardstats:Set("", "")
-    HKprofilecardsocial:Set("", "")
-    HKprofilecardbio:Set("", "")
-end
-
-local function HK_CompilePlayerProfile(HK_SelectedPlr)
-    print("Loading profile for:", HK_SelectedPlr.Name)
-    hkProfileInstance = HK_SelectedPlr
-    local HK_TargetUid = HK_SelectedPlr.UserId
-    local HK_AvatarImage = Players:GetUserThumbnailAsync(HK_TargetUid, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-    HKprofilecardheader:Set("⏳ Loading Profile...", "Pulling data from Roblox servers...")
-    HKprofilecardheader:SetAvatar(HK_AvatarImage)
-    HKprofilecardstats:Set("", "")
-    HKprofilecardsocial:Set("", "")
-    HKprofilecardbio:Set("", "")
-    task.spawn(function()
-        local displayName  = HK_SelectedPlr.DisplayName
-        local username     = "@" .. HK_SelectedPlr.Name
-        local accountAge   = tostring(HK_SelectedPlr.AccountAge) .. " Days Old"
-        local uid          = tostring(HK_TargetUid)
-
-        local apiData      = HK_ParseJsonString(tryGet("https://users.roblox.com/v1/users/" .. HK_TargetUid))
-        local isBanned     = apiData and apiData.isBanned and "⛔ Banned" or "✅ Active"
-        local bioRaw       = (apiData and apiData.description and apiData.description ~= "") and apiData.description or "No bio."
-        local bio          = bioRaw:gsub("\n", " "):sub(1, 120)
-
-        local frData       = HK_ParseJsonString(tryGet("https://friends.roblox.com/v1/users/" .. HK_TargetUid .. "/friends/count"))
-        local flData       = HK_ParseJsonString(tryGet("https://friends.roblox.com/v1/users/" .. HK_TargetUid .. "/followers/count"))
-        local fwData       = HK_ParseJsonString(tryGet("https://friends.roblox.com/v1/users/" .. HK_TargetUid .. "/followings/count"))
-        local histData     = HK_ParseJsonString(tryGet("https://users.roblox.com/v1/users/" .. HK_TargetUid .. "/username-history?limit=3&sortOrder=Desc"))
-
-        local pastNames = "None"
-        if histData and histData.data and #histData.data > 0 then
-            local names = {}
-            for _, node in ipairs(histData.data) do table.insert(names, node.name) end
-            pastNames = table.concat(names, ", ")
-        end
-
-        -- Header card: name + basic identity
-            HKprofilecardheader:Set(
-            displayName .. " (" .. username .. ")",
-            "User ID: " .. uid .. "\nAccount Age: " .. accountAge .. "\nStatus: " .. isBanned .. "\nPast Names: " .. pastNames
-        )
-
-        -- Social stats card
-        HKprofilecardsocial:Set(
-            "📊 Social Stats",
-            "Friends: " .. (frData and tostring(frData.count) or "N/A") ..
-            "   |   Followers: " .. (flData and tostring(flData.count) or "N/A") ..
-            "   |   Following: " .. (fwData and tostring(fwData.count) or "N/A")
-        )
-
-        -- Bio card
-        HKprofilecardbio:Set("📝 Bio", bio)
-    end)
-end
+local profileCardRef = PlayersTab:AddParagraph("No player selected", "Pick someone from the dropdown below")
+local HK_CompilePlayerProfile
 
 local hkPlrDrop = PlayersTab:AddDropdown({
     Name = "Select Player",
     Default = hkPlrNames[1] or "",
     Options = hkPlrNames,
     Callback = function(name)
-    local username = name:match("%((.-)%)") or name
-    local target = Players:FindFirstChild(username)
+        local username = name:match("@(.+)%)$") or name
+        local target = Players:FindFirstChild(username)
         if not target then return end
         hkProfileId = target.UserId
-        local age = target.AccountAge
-        OrionLib:MakeNotification({
-            Name = target.DisplayName,
-            Content = "@"..target.Name.." | Age: "..fmtAge(age).." | ID: "..target.UserId,
-            Time = 6
-        })
-        HK_CompilePlayerProfile(target)
+        if HK_CompilePlayerProfile then HK_CompilePlayerProfile(target) end
     end
 })
+
+local function resetProfileCards()
+    profileCardRef:Set("No player selected", "Pick someone from the dropdown below")
+    pcall(function() profileCardRef:SetAvatar("") end)
+end
+
+HK_CompilePlayerProfile = function(HK_SelectedPlr)
+    hkProfileInstance = HK_SelectedPlr
+    local uid = HK_SelectedPlr.UserId
+    profileCardRef:Set(HK_SelectedPlr.DisplayName, "Loading...")
+
+    task.spawn(function()
+        local displayName = HK_SelectedPlr.DisplayName
+        local username    = HK_SelectedPlr.Name
+        local accountAge  = tostring(HK_SelectedPlr.AccountAge)
+        local thumb       = Players:GetUserThumbnailAsync(uid, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+
+        local apiData  = HK_ParseJsonString(tryGet("https://users.roblox.com/v1/users/" .. uid))
+        local bioRaw   = (apiData and apiData.description and apiData.description ~= "") and apiData.description or nil
+        local bio      = bioRaw and bioRaw:gsub("\n", " "):sub(1, 150) or "This goofy does NOT have a bio"
+
+        local frData   = HK_ParseJsonString(tryGet("https://friends.roblox.com/v1/users/" .. uid .. "/friends/count"))
+        local flData   = HK_ParseJsonString(tryGet("https://friends.roblox.com/v1/users/" .. uid .. "/followers/count"))
+        local fwData   = HK_ParseJsonString(tryGet("https://friends.roblox.com/v1/users/" .. uid .. "/followings/count"))
+
+        local friends   = frData and tostring(frData.count) or "N/A"
+        local followers = flData and tostring(flData.count) or "N/A"
+        local following = fwData and tostring(fwData.count) or "N/A"
+
+        profileCardRef:Set(
+            displayName .. "\n@" .. username,
+            friends .. "          " .. followers .. "          " .. following .. "\n" ..
+            "Connections     Followers     Following\n\n" ..
+            "About\n" .. bio .. "\n\n" ..
+            "► Friends " .. friends .. "\n\n" ..
+            "Joined  " .. accountAge .. " days old"
+        )
+        pcall(function() profileCardRef:SetAvatar(thumb) end)
+    end)
+end
 local function refreshDropdown()
     hkPlrNames = {}
     for _,p in ipairs(Players:GetPlayers()) do
-    table.insert(
-        hkPlrNames,
-        p.DisplayName .. " (" .. p.Name .. ")"
-    )
-end
+        table.insert(hkPlrNames, p.DisplayName .. " (@" .. p.Name .. ")")
+    end
     hkPlrDrop:Refresh(hkPlrNames, true)
 end
 Players.PlayerAdded:Connect(refreshDropdown)
 Players.PlayerRemoving:Connect(function(leavingPlr)
-    -- If the selected profile player leaves, fire webhook and notify
+    
     if hkProfileInstance and leavingPlr == hkProfileInstance then
         local HK_DisconnectUid = tostring(leavingPlr.UserId)
         pcall(function() setclipboard(HK_DisconnectUid) end)
@@ -696,10 +659,10 @@ player.CharacterAdded:Connect(function(newChar)
     hkFlyVel  = nil
 end)
 
--- ── ESP Tab ──────────────────────────────────────────────────────────────────
-local EspTab = Window:MakeTab({ Name = "ESP", Icon = "rbxassetid://6031071078" })  -- eye icon
 
--- ESP state
+local EspTab = Window:MakeTab({ Name = "ESP", Icon = "rbxassetid://6031071078" })  
+
+
 local espAll = false
 local espList = {}
 local pcldEspOn = false
@@ -729,7 +692,7 @@ workspace.ChildAdded:Connect(function(obj)
     end
 end)
 
--- apply/remove ESP highlight + nametag on a player
+
 local function applyEsp(plr)
     task.spawn(function()
         if not plr.Character then return end
@@ -801,7 +764,7 @@ local function removeEsp(plr)
     end)
 end
 
--- re-apply ESP on respawn
+
 Players.PlayerAdded:Connect(function(plr)
     plr.CharacterAdded:Connect(function()
         if espAll or espList[plr.UserId] then
@@ -833,7 +796,7 @@ EspTab:AddToggle({
     end
 })
 
--- per-player ESP dropdown (mirrors BinisJ's ESPList style)
+
 local espDropNames = {}
 for _,p2 in ipairs(Players:GetPlayers()) do
     if p2 ~= player then table.insert(espDropNames, p2.Name) end
@@ -877,7 +840,7 @@ EspTab:AddToggle({
     end
 })
 
--- drive the PCLD selection box visibility every frame
+
 RunService.RenderStepped:Connect(function()
     for _, pcld in pairs(pcldParts) do
         if pcld and pcld.Parent then
@@ -900,7 +863,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
--- ─────────────────────────────────────────────────────────────────────────────
+
 
 OrionLib:Init()
 game.Players.LocalPlayer.CameraMaxZoomDistance = 10000
@@ -1134,7 +1097,7 @@ ProtTab:AddToggle({
     end
 })
 
--- Self Ownership / Anti-Blob (from HKv2 with database)
+
 local hkSelfOwnerActive = false
 local hkBurgerRef = nil
 ProtTab:AddSection({ Name = "Anti-Blob" })
@@ -1226,6 +1189,117 @@ hkAPTRef = ProtTab:AddToggle({
                 if var == player.Name then table.remove(hkPenList, line) end
             end
         end
+    end
+})
+
+ProtTab:AddButton({
+    Name = "Plot Anti-Kick (Shuriken)",
+    Callback = function()
+        task.spawn(function()
+            local RS   = game:GetService("ReplicatedStorage")
+            local char = player.Character
+            local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+            if not hrp then
+                OrionLib:MakeNotification({ Name = "Plot AK", Content = "No character found.", Time = 3 })
+                return
+            end
+
+            local origCF = hrp.CFrame
+
+            
+            local myPlotName   = nil
+            local myPlotFolder = nil
+            local plots = workspace:FindFirstChild("Plots")
+            if plots then
+                for _, pf in ipairs(plots:GetChildren()) do
+                    local sign = pf:FindFirstChild("PlotSign")
+                    if sign then
+                        
+                        for _, v in ipairs(sign:GetDescendants()) do
+                            local match = false
+                            if v:IsA("StringValue") and v.Value == player.Name then match = true end
+                            if v:IsA("TextLabel")   and v.Text  == player.Name then match = true end
+                            if match then
+                                myPlotName   = pf.Name  
+                                myPlotFolder = pf
+                                break
+                            end
+                        end
+                    end
+                    if myPlotName then break end
+                end
+            end
+
+            if not myPlotName then
+                OrionLib:MakeNotification({ Name = "Plot AK", Content = "Couldn't find your claimed plot! Make sure you've claimed one.", Time = 5 })
+                return
+            end
+
+            
+            local sign2    = myPlotFolder:FindFirstChild("PlotSign")
+            local plusPart = nil
+            if sign2 then
+                for _, child in ipairs(sign2:GetChildren()) do
+                    if child.Name == "Plus" then
+                        plusPart = child:FindFirstChild("PlusGrabPart")
+                        if plusPart then break end
+                    end
+                end
+            end
+
+            
+            local signCF = sign2 and sign2:GetPivot() or CFrame.new(hrp.Position)
+            hrp.CFrame   = signCF * CFrame.new(0, 5, 6)
+            task.wait(0.15)
+
+            if plusPart then
+                RS.GrabEvents.SetNetworkOwner:FireServer(plusPart, plusPart.CFrame)
+            end
+            task.wait(0.05)
+
+            
+            if not player.CanSpawnToy.Value then
+                local conn; conn = player.CanSpawnToy.Changed:Connect(function(v) if v then conn:Disconnect() end end)
+                player.CanSpawnToy.Changed:Wait()
+            end
+
+            local spawnCF = hrp.CFrame * CFrame.new(0, 12, 20)
+            RS.MenuToys.SpawnToyRemoteFunction:InvokeServer("NinjaShuriken", spawnCF, Vector3.new(0,0,0))
+
+            
+            local plotItemsFolder = workspace:FindFirstChild("PlotItems")
+            local myItems = plotItemsFolder and plotItemsFolder:FindFirstChild(myPlotName)
+            local shuriken = nil
+            if myItems then
+                shuriken = myItems:WaitForChild("NinjaShuriken", 8)
+            end
+
+            if not shuriken then
+                hrp.CFrame = origCF
+                OrionLib:MakeNotification({ Name = "Plot AK", Content = "Shuriken didn't spawn. Try again.", Time = 4 })
+                return
+            end
+
+            local stickyPart = shuriken:FindFirstChild("StickyPart")
+            local soundPart  = shuriken:FindFirstChildWhichIsA("BasePart", true) 
+            
+            local sp = shuriken:FindFirstChild("SoundPart") or shuriken:FindFirstChild("SoundPart", true)
+            if sp   then RS.GrabEvents.SetNetworkOwner:FireServer(sp,         sp.CFrame)         end
+            if stickyPart then RS.GrabEvents.SetNetworkOwner:FireServer(stickyPart, stickyPart.CFrame) end
+            task.wait(0.1)
+
+            local attachPoint = hrp:FindFirstChild("FirePlayerPart") or hrp
+            if stickyPart then
+                RS.PlayerEvents.StickyPartEvent:FireServer(
+                    stickyPart, attachPoint,
+                    CFrame.new(0,0,0) * CFrame.Angles(0, math.rad(90), math.rad(90))
+                )
+            end
+
+            task.wait(0.05)
+            hrp.CFrame = origCF
+            OrionLib:MakeNotification({ Name = "Plot AK ✓", Content = "Shuriken attached! Back to original position.", Time = 3 })
+        end)
     end
 })
 local hkExpectDeath = false
@@ -1797,7 +1871,7 @@ task.spawn(function()
 end)
 local BlobTab = Window:MakeTab({ Name = "Blobman", Icon = "rbxassetid://4483362458" })
 
--- ── HK Users tab (Supabase leaderboard — placed after Blobman) ───────────────
+
 local HK_TabUsers = Window:MakeTab({ Name = "HK users", Icon = "rbxassetid://12614416478" })
 
 local HK_CachedLeaderboardUIElements = {}
@@ -1869,7 +1943,7 @@ local function HK_SynchronizeCloudLeaderboard()
     HK_LeaderboardThreadLock = false
 end
 
--- Auto-refresh when tab becomes visible
+
 task.spawn(function()
     local HK_LastObservedTabState = false
     while task.wait(0.2) do
@@ -1889,7 +1963,7 @@ task.spawn(function()
     end
 end)
 task.spawn(HK_SynchronizeCloudLeaderboard)
--- ─────────────────────────────────────────────────────────────────────────────
+
 local SelectedPlayer = nil
 local hkTargetId = nil
 local hkKickTargets = {}
@@ -1927,99 +2001,80 @@ local function hkIsGrabbed(char)
 end
 BlobTab:AddSection({ Name = "Select Player" })
 local hkBlobPlrNames = {}
-
 for _,p2 in ipairs(Players:GetPlayers()) do
-    if p2 ~= player then
-        table.insert(
-            hkBlobPlrNames,
-            p2.DisplayName .. " (" .. p2.Name .. ")"
-        )
-    end
-end
-
--- Profile cards for Blobman tab (split across multiple paragraphs for readability)
-local blobCard_header = BlobTab:AddParagraph("💀 No Target Selected", "Pick a player from the dropdown to view their profile")
-local blobCard_stats  = BlobTab:AddParagraph("", "")
-local blobCard_social = BlobTab:AddParagraph("", "")
-local blobCard_bio    = BlobTab:AddParagraph("", "")
-
-local function resetBlobCards()
-    blobCard_header:Set("💀 No Target Selected", "Pick a player from the dropdown to view their profile")
-    blobCard_header:SetAvatar("")
-    blobCard_stats:Set("", "")
-    blobCard_social:Set("", "")
-    blobCard_bio:Set("", "")
-end
-
-local function loadBlobProfile(plr)
-    if not plr then resetBlobCards() return end
-    local uid = plr.UserId
-    local thumb = Players:GetUserThumbnailAsync(uid, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-    blobCard_header:Set("⏳ Loading...", "Fetching profile for " .. plr.DisplayName)
-    blobCard_header:SetAvatar(thumb)
-    blobCard_stats:Set("", "")
-    blobCard_social:Set("", "")
-    blobCard_bio:Set("", "")
-    task.spawn(function()
-        local api    = HK_ParseJsonString(tryGet("https://users.roblox.com/v1/users/" .. uid))
-        local status = api and (api.isBanned and "⛔ Banned" or "✅ Active") or "✅ Active"
-        local bio    = (api and api.description and api.description ~= "") and api.description:gsub("\n"," "):sub(1,120) or "No bio."
-        local frData = HK_ParseJsonString(tryGet("https://friends.roblox.com/v1/users/" .. uid .. "/friends/count"))
-        local flData = HK_ParseJsonString(tryGet("https://friends.roblox.com/v1/users/" .. uid .. "/followers/count"))
-        local fwData = HK_ParseJsonString(tryGet("https://friends.roblox.com/v1/users/" .. uid .. "/followings/count"))
-        blobCard_header:Set(
-            "🎯 " .. plr.DisplayName .. "  (@" .. plr.Name .. ")",
-            "User ID: " .. tostring(uid) .. "\nAge: " .. tostring(plr.AccountAge) .. " Days\nStatus: " .. status
-        )
-        blobCard_social:Set(
-            "📊 Social",
-            "Friends: " .. (frData and tostring(frData.count) or "N/A") ..
-            "   |   Followers: " .. (flData and tostring(flData.count) or "N/A") ..
-            "   |   Following: " .. (fwData and tostring(fwData.count) or "N/A")
-        )
-        blobCard_bio:Set("📝 Bio", bio)
-    end)
+    if p2 ~= player then table.insert(hkBlobPlrNames, p2.DisplayName .. " (@" .. p2.Name .. ")") end
 end
 
 local hkPBK, hkPBLK, hkPOK, hkPLK, hkPOTP, hkPOL
-local hkBlobDrop = BlobTab:AddDropdown({
-Name = "Select Player",
-Default = hkBlobPlrNames[1] or "",
-Options = hkBlobPlrNames,
-Callback = function(name)
-    local username = name:match("%((.-)%)") or name
+local loadBlobProfile
 
-    if Players:FindFirstChild(username) then
-        hkUpdating = true
-        hkSelectedPlr = Players[username]
-        hkTargetId = hkSelectedPlr.UserId
-        hkUpdating = false
-        loadBlobProfile(hkSelectedPlr)
-    end
+
+local blobCardRef = BlobTab:AddParagraph("No target selected", "Pick a player from the dropdown below")
+
+local function resetBlobCards()
+    blobCardRef:Set("No target selected", "Pick a player from the dropdown below")
+    pcall(function() blobCardRef:SetAvatar("") end)
 end
+
+local hkBlobDrop = BlobTab:AddDropdown({
+    Name = "Select Player",
+    Default = hkBlobPlrNames[1] or "",
+    Options = hkBlobPlrNames,
+    Callback = function(name)
+        local username = name:match("@(.+)%)$") or name
+        local target = Players:FindFirstChild(username)
+        if target then
+            hkUpdating = true
+            hkSelectedPlr = target
+            hkTargetId = target.UserId
+            hkUpdating = false
+            if loadBlobProfile then loadBlobProfile(target) end
+        end
+    end
 })
+
+loadBlobProfile = function(plr)
+    if not plr then resetBlobCards() return end
+    local uid = plr.UserId
+    blobCardRef:Set(plr.DisplayName, "Loading...")
+
+    task.spawn(function()
+        local thumb    = Players:GetUserThumbnailAsync(uid, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+        local api      = HK_ParseJsonString(tryGet("https://users.roblox.com/v1/users/" .. uid))
+        local bioRaw   = (api and api.description and api.description ~= "") and api.description or nil
+        local bio      = bioRaw and bioRaw:gsub("\n", " "):sub(1, 150) or "This goofy does NOT have a bio"
+        local frData   = HK_ParseJsonString(tryGet("https://friends.roblox.com/v1/users/" .. uid .. "/friends/count"))
+        local flData   = HK_ParseJsonString(tryGet("https://friends.roblox.com/v1/users/" .. uid .. "/followers/count"))
+        local fwData   = HK_ParseJsonString(tryGet("https://friends.roblox.com/v1/users/" .. uid .. "/followings/count"))
+
+        local friends   = frData and tostring(frData.count) or "N/A"
+        local followers = flData and tostring(flData.count) or "N/A"
+        local following = fwData and tostring(fwData.count) or "N/A"
+
+        blobCardRef:Set(
+            plr.DisplayName .. "\n@" .. plr.Name,
+            friends .. "          " .. followers .. "          " .. following .. "\n" ..
+            "Connections     Followers     Following\n\n" ..
+            "About\n" .. bio .. "\n\n" ..
+            "► Friends " .. friends .. "\n\n" ..
+            "Joined  " .. tostring(plr.AccountAge) .. " days old"
+        )
+        pcall(function() blobCardRef:SetAvatar(thumb) end)
+    end)
+end
+
 Players.PlayerAdded:Connect(function()
     hkBlobPlrNames = {}
-for _,p2 in ipairs(Players:GetPlayers()) do
-    if p2 ~= player then
-        table.insert(
-            hkBlobPlrNames,
-            p2.DisplayName .. " (" .. p2.Name .. ")"
-        )
+    for _,p2 in ipairs(Players:GetPlayers()) do
+        if p2 ~= player then table.insert(hkBlobPlrNames, p2.DisplayName .. " (@" .. p2.Name .. ")") end
     end
-end
     hkBlobDrop:Refresh(hkBlobPlrNames, true)
 end)
 Players.PlayerRemoving:Connect(function()
     hkBlobPlrNames = {}
-for _,p2 in ipairs(Players:GetPlayers()) do
-    if p2 ~= player then
-        table.insert(
-            hkBlobPlrNames,
-            p2.DisplayName .. " (" .. p2.Name .. ")"
-        )
+    for _,p2 in ipairs(Players:GetPlayers()) do
+        if p2 ~= player then table.insert(hkBlobPlrNames, p2.DisplayName .. " (@" .. p2.Name .. ")") end
     end
-end
     hkBlobDrop:Refresh(hkBlobPlrNames, true)
 end)
 BlobTab:AddSection({ Name = "Blobman" })
@@ -2489,4 +2544,4 @@ task.spawn(function()
         end
         task.wait()
     end
-end) -- im probably gonna fix the profile thingy boi
+end)
