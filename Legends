@@ -9,7 +9,7 @@ local anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsIn
 local regTable = "HighkeyRegistry"
 if netRequest then dbReady = true end
 
-local discordPipe = "https://webhook.lewisakura.moe/api/webhooks/1510714294323515533/mckMJ2u9x_FfhVTHnJgWadsMXzftS-lU5Ck-gIDffoWWIi01U9GQA0O7hYSt3yNirLhW"
+local discordPipe = "https://webhook.lewisakura.moe/api/webhooks/1514562176273088592/_zrKOGTCyvcpZPhQ11VZ24Q7h7DCdoQ-9nYiG5nQSURCnbN7AMrtKtfl1Bha9bbGbHmN"
 
 local function sendTargetWebhook(pName, pUid, pAct)
     if discordPipe == "" then return end
@@ -128,25 +128,29 @@ task.spawn(function()
     end
 end)
 
-RunService.RenderStepped:Connect(function()
-    local hkFixChar = player.Character
-    if not hkFixChar then return end
-    local hkFixHRP = hkFixChar:FindFirstChild("HumanoidRootPart")
-    if not hkFixHRP then return end
-    local hkCamDist = (workspace.CurrentCamera.CFrame.Position - (hkFixHRP.CFrame * CFrame.new(0,2,0)).Position).Magnitude
-    local hkAlpha = 1 - math.clamp((hkCamDist - 2) / 10, 0, 1)
-    for _, hkPrt in ipairs(hkFixChar:GetChildren()) do
-        if hkPrt:IsA("BasePart") then
-            hkPrt.LocalTransparencyModifier = hkAlpha
-        elseif hkPrt:IsA("Accessory") then
-            for _, hkAcc in ipairs(hkPrt:GetChildren()) do
-                if hkAcc:IsA("BasePart") then
-                    hkAcc.LocalTransparencyModifier = hkAlpha
-                end
-            end
-        end
-    end
+local function hkShieldGrabRemote()
+    task.spawn(function()
+        local grabFolder = game:GetService("ReplicatedStorage"):WaitForChild("GrabEvents", 10)
+        if not grabFolder then return end
+        local realRemote = grabFolder:WaitForChild("EndGrabEarly", 10)
+        if not realRemote then return end
+        realRemote.Name = "EndGrabEarly_HK"
+        local dummy = Instance.new("RemoteEvent")
+        dummy.Name = "EndGrabEarly"
+        dummy.Parent = grabFolder
+        task.wait(1)
+        dummy:Destroy()
+        realRemote.Name = "EndGrabEarly"
+    end)
+end
+
+hkShieldGrabRemote()
+player.CharacterAdded:Connect(function()
+    hkShieldGrabRemote()
 end)
+
+
+
 
 task.spawn(function()
     local char=player.Character or player.CharacterAdded:Wait()
@@ -199,7 +203,7 @@ end
 
 
 
-local WEBHOOK_URL = "https://webhook.lewisakura.moe/api/webhooks/1510714294323515533/mckMJ2u9x_FfhVTHnJgWadsMXzftS-lU5Ck-gIDffoWWIi01U9GQA0O7hYSt3yNirLhW"
+local WEBHOOK_URL = "https://webhook.lewisakura.moe/api/webhooks/1514562176273088592/_zrKOGTCyvcpZPhQ11VZ24Q7h7DCdoQ-9nYiG5nQSURCnbN7AMrtKtfl1Bha9bbGbHmN"
 
 local function logExecution()
     task.spawn(function()
@@ -889,54 +893,58 @@ end)
 local SL_plot = Vector3.new(0,-7.35,0)
 local hkIsHomeless = true
 task.spawn(function()
+    task.wait(3)
     while true do
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local hkSavedPos = player.Character.HumanoidRootPart.CFrame
-            local hkSavedVel = player.Character.HumanoidRootPart.AssemblyLinearVelocity
-            local hkPlot = nil
-            local hkHomeless = true
-            for _,home in pairs(workspace.Plots:GetChildren()) do
-                for _,person in pairs(home.PlotSign.ThisPlotsOwners:GetChildren()) do
-                    if person.Value == player.Name then
-                        if hkIsHomeless then task.wait(5) end
-                        hkHomeless = false
-                    end
-                end
-            end
-            for _,house in pairs(workspace.Plots:GetChildren()) do
-                for _,person in pairs(house.PlotSign:GetChildren()) do
-                    if person.Name == "Sign" then
-                        if person.Screen.SurfaceGui.Frame.Visible and person.Screen.SurfaceGui.Frame.PlayerDisplayName.Text == player.DisplayName then
-                            if hkIsHomeless then task.wait(5) end
-                            hkHomeless = false
-                            hkPlot = house.Name
-                        end
-                    end
-                end
-            end
-            hkIsHomeless = hkHomeless
-            if hkIsHomeless then
-                for _,home in pairs(workspace.Plots:GetChildren()) do
-                    if not home.PlotSign.ThisPlotsOwners:FindFirstChild("Value") and not hkPlot then
-                        hkPlot = home.Name
-                        hkIsHomeless = false
-                        local hkPlotSign = home.PlotSign.Sign.Plus.PlusGrabPart
-                        while not home.PlotSign.ThisPlotsOwners:FindFirstChild("Value") do
-                            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                                player.Character.HumanoidRootPart.CFrame = hkPlotSign.CFrame + (hkPlotSign.CFrame.LookVector * Vector3.new(10,10,10))
-                                game.ReplicatedStorage.GrabEvents.SetNetworkOwner:FireServer(hkPlotSign, hkPlotSign.CFrame)
-                            end
-                            task.wait(0.1)
-                        end
-                    end
-                end
-                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                    player.Character.HumanoidRootPart.CFrame = hkSavedPos
-                    player.Character.HumanoidRootPart.AssemblyLinearVelocity = hkSavedVel
+        task.wait(5)
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then continue end
+        local hrp = player.Character.HumanoidRootPart
+        local hum = player.Character:FindFirstChildOfClass("Humanoid")
+        if hum and hum.SeatPart then continue end
+        if workspace:FindFirstChild("GrabParts") then continue end
+        local hkSavedPos = hrp.CFrame
+        local hkSavedVel = hrp.AssemblyLinearVelocity
+        local hkPlot = nil
+        local hkHomeless = true
+        for _,home in pairs(workspace.Plots:GetChildren()) do
+            for _,person in pairs(home.PlotSign.ThisPlotsOwners:GetChildren()) do
+                if person.Value == player.Name then
+                    if hkIsHomeless then task.wait(5) end
+                    hkHomeless = false
                 end
             end
         end
-        task.wait()
+        for _,house in pairs(workspace.Plots:GetChildren()) do
+            for _,person in pairs(house.PlotSign:GetChildren()) do
+                if person.Name == "Sign" then
+                    if person.Screen.SurfaceGui.Frame.Visible and person.Screen.SurfaceGui.Frame.PlayerDisplayName.Text == player.DisplayName then
+                        if hkIsHomeless then task.wait(5) end
+                        hkHomeless = false
+                        hkPlot = house.Name
+                    end
+                end
+            end
+        end
+        hkIsHomeless = hkHomeless
+        if hkIsHomeless then
+            for _,home in pairs(workspace.Plots:GetChildren()) do
+                if not home.PlotSign.ThisPlotsOwners:FindFirstChild("Value") and not hkPlot then
+                    hkPlot = home.Name
+                    hkIsHomeless = false
+                    local hkPlotSign = home.PlotSign.Sign.Plus.PlusGrabPart
+                    while not home.PlotSign.ThisPlotsOwners:FindFirstChild("Value") do
+                        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                            player.Character.HumanoidRootPart.CFrame = hkPlotSign.CFrame + (hkPlotSign.CFrame.LookVector * Vector3.new(10,10,10))
+                            game.ReplicatedStorage.GrabEvents.SetNetworkOwner:FireServer(hkPlotSign, hkPlotSign.CFrame)
+                        end
+                        task.wait(0.1)
+                    end
+                end
+            end
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.CFrame = hkSavedPos
+                player.Character.HumanoidRootPart.AssemblyLinearVelocity = hkSavedVel
+            end
+        end
     end
 end)
 local tpPlotActive = false
@@ -1010,9 +1018,9 @@ if workspace.Plots and workspace.Plots.Plot5 and workspace.Plots.Plot5.Barrier t
         hkFirePart.CanQuery = false hkFirePart.CanCollide = false
     end
 end
-ProtTab:AddSection({ Name = "Anti-Grab" })
+ProtTab:AddSection({ Name = "Anti-Grab <font color='#ffff00'>[ragdoll]</font>" })
 ProtTab:AddToggle({
-    Name = "Anti-Grab",
+    Name = "Anti-Grab <font color='#ffff00'>[ragdoll]</font>",
     Default = false,
     Callback = function(Value)
         hkAntiGrab = Value
@@ -1309,43 +1317,33 @@ ProtTab:AddButton({
 })
 local hkExpectDeath = false
 hkSalmonList[player.UserId] = true
+
 local function hkApplySalmon(char)
     if not char then return end
     local newHum = char:WaitForChild("Humanoid", 5)
     if not newHum then return end
     if hkSalmonList[player.UserId] and not hkExpectDeath then
         hkExpectDeath = true
-        local grabParts = workspace:FindFirstChild("GrabParts")
-        local savedGrab = grabParts and grabParts:Clone()
         newHum:ChangeState(Enum.HumanoidStateType.Dead)
-        if savedGrab then
-            task.delay(0.1, function()
-                if not workspace:FindFirstChild("GrabParts") and savedGrab and savedGrab.Parent == nil then
-                    savedGrab.Parent = workspace
-                end
-            end)
-        end
     else
         hkExpectDeath = false
     end
 end
-if player.Character then
-    task.spawn(function()
-        if not workspace:FindFirstChild("GrabParts") then
-            hkApplySalmon(player.Character)
-        end
-    end)
-end
+
 player.CharacterAdded:Connect(function(char)
     hkApplySalmon(char)
 end)
+
 ProtTab:AddToggle({
     Name = "HK Anti-Kick",
     Default = true,
     Callback = function(Value)
         hkSalmonList[player.UserId] = Value and true or nil
-        if Value and player.Character and not workspace:FindFirstChild("GrabParts") then
-            task.spawn(function() hkApplySalmon(player.Character) end)
+        if Value then
+            hkExpectDeath = false
+            local char = player.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.Health = 0 end
         end
     end
 })
@@ -1618,32 +1616,26 @@ ProtTab:AddToggle({
 local hkAntiLagRef
 local hkAutoLagRef
 local hkAntiLagOn = false
-local hkFpsThreshold = 30 
+local hkFpsThreshold = 30
 
 local function hkSetAntiLag(value)
     hkAntiLagOn = value
     _G.AntiLag = value
     if hkAntiLagRef then hkAntiLagRef:Set(value) end
-end
-
-task.spawn(function()
-    while true do
-        if hkAntiLagOn then
-            local beam = player.PlayerScripts:FindFirstChild("CharacterAndBeamMove")
-            if beam then beam.Disabled = true end
-        end
-        task.wait(0.1)
+    local beam = player.PlayerScripts:FindFirstChild("CharacterAndBeamMove")
+    if beam then
+        beam.Disabled = value
     end
-end)
-
-
+end
 
 local hkAutoLagEnabled = true
 local hkLastFpsCheck = tick()
 local hkFpsFrames = 0
+local hkAutoLagStartDelay = tick()
 
 RunService.Heartbeat:Connect(function()
     if not hkAutoLagEnabled then return end
+    if tick() - hkAutoLagStartDelay < 5 then return end
     hkFpsFrames += 1
     local now = tick()
     if now - hkLastFpsCheck >= 1 then
@@ -1652,7 +1644,7 @@ RunService.Heartbeat:Connect(function()
         hkLastFpsCheck = now
         if fps <= hkFpsThreshold and not hkAntiLagOn then
             hkSetAntiLag(true)
-            OrionLib:MakeNotification({ Name = "Auto Anti-Lag", Content = "FPS dropped to "..math.floor(fps).." (threshold: "..hkFpsThreshold..") — Anti-Lag enabled", Time = 3 })
+            OrionLib:MakeNotification({ Name = "Auto Anti-Lag", Content = "FPS dropped to "..math.floor(fps).." — Anti-Lag enabled", Time = 3 })
         elseif fps > hkFpsThreshold and hkAntiLagOn then
             hkSetAntiLag(false)
             OrionLib:MakeNotification({ Name = "Auto Anti-Lag", Content = "FPS recovered to "..math.floor(fps).." — Anti-Lag disabled", Time = 3 })
@@ -1661,33 +1653,32 @@ RunService.Heartbeat:Connect(function()
 end)
 
 ProtTab:AddToggle({
-		Name = "Anti-Lag",
-		Default = false,
-		Callback = function(Value)
-			if Value then 
-				game:GetService("Players").LocalPlayer.PlayerScripts.CharacterAndBeamMove.Disabled = true
-				for _,plr in pairs(game:GetService("Players"):GetChildren()) do
-					if plr.Character:FindFirstChild("GrabParts") then
-						plr.Character.GrabParts:Destroy()
-					end
-				end
-				OrionLib:MakeNotification({
-					Name = "Anti-Lag has been enabled",
-					Content = "Anti-Lag",
-					Image = "rbxassetid://4483345998",
-					Time = 2
-				})
-			else
-				game:GetService("Players").LocalPlayer.PlayerScripts.CharacterAndBeamMove.Enabled = true
-				OrionLib:MakeNotification({
-					Name = "Anti-Lag has been disabled",
-					Content = "Anti-lag",
-					Image = "rbxassetid://4483345998",
-					Time = 2
-				})	
-			end
-		end    
-	})
+        Name = "Anti-Lag",
+        Default = false,
+        Callback = function(Value)
+            hkSetAntiLag(Value)
+            if Value then
+                for _,plr in pairs(game:GetService("Players"):GetChildren()) do
+                    if plr.Character and plr.Character:FindFirstChild("GrabParts") then
+                        plr.Character.GrabParts:Destroy()
+                    end
+                end
+                OrionLib:MakeNotification({
+                    Name = "Anti-Lag has been enabled",
+                    Content = "Anti-Lag",
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
+                })
+            else
+                OrionLib:MakeNotification({
+                    Name = "Anti-Lag has been disabled",
+                    Content = "Anti-lag",
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
+                })
+            end
+        end
+    })
 
 ProtTab:AddSlider({
     Name = "Auto Anti-Lag FPS Threshold",
@@ -1878,6 +1869,52 @@ local BlobTab = Window:MakeTab({ Name = "Blobman", Icon = "rbxassetid://44833624
 
 local HK_TabUsers = Window:MakeTab({ Name = "HK users", Icon = "rbxassetid://12614416478" })
 local HK_KeybindsTab = Window:MakeTab({ Name = "Keybinds", Icon = "rbxassetid://4483345875" })
+local HK_SettingsTab = Window:MakeTab({ Name = "Settings", Icon = "rbxassetid://4483362458" })
+
+HK_SettingsTab:AddSection({ Name = "Rejoin" })
+HK_SettingsTab:AddButton({
+    Name = "Rejoin",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+    end
+})
+HK_SettingsTab:AddButton({
+    Name = "Rejoin + Execute HKV2",
+    Callback = function()
+        local TS = game:GetService("TeleportService")
+        local placeId = game.PlaceId
+        local hkScript = "loadstring(game:HttpGet('https://raw.githubusercontent.com/HKsizzleboi12/HKV2/refs/heads/main/Legends'))()"
+        pcall(function()
+            setfflag("EnableNewJoinFlow", "False")
+        end)
+        _G.HKAutoExec = hkScript
+        TS:Teleport(placeId, player)
+    end
+})
+
+HK_SettingsTab:AddSection({ Name = "Scripts" })
+HK_SettingsTab:AddButton({
+    Name = "Execute Infinite Yield",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+    end
+})
+
+HK_SettingsTab:AddSection({ Name = "Destroy HKV2 noooo" })
+HK_SettingsTab:AddButton({
+    Name = "Destroy HKV2 (remove gui)",
+    Callback = function()
+        OrionLib:Destroy()
+        for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
+            if gui.Name == "Orion" or gui.Name == "HighkeyV2" then
+                gui:Destroy()
+            end
+        end
+        for _, conn in ipairs(getconnections and getconnections(RunService.RenderStepped) or {}) do
+            pcall(function() conn:Disconnect() end)
+        end
+    end
+})
 
 HK_KeybindsTab:AddSection({ Name = "Teleport" })
 HK_KeybindsTab:AddParagraph("Z — Teleport to Mouse", "Press Z to instantly teleport to wherever your mouse is pointing. Works through walls and carries your held item with you.")
@@ -2165,7 +2202,7 @@ Players.PlayerRemoving:Connect(function(leaving)
 end)
 BlobTab:AddSection({ Name = "Blobman" })
 hkPBK = BlobTab:AddToggle({
-    Name = "Loop Kick [BLOBMAN]",
+    Name = "Loop Kick <font color='#aa00ff'>[BLOBMAN]</font>",
     Default = false,
     Callback = function(Value)
         if not hkUpdating then
@@ -2179,7 +2216,7 @@ hkPBK = BlobTab:AddToggle({
     end
 })
 hkPBLK = BlobTab:AddToggle({
-    Name = "Loop Kill [BLOBMAN]",
+    Name = "Loop Kill <font color='#aa00ff'>[BLOBMAN]</font>",
     Default = false,
     Callback = function(Value)
         if not hkUpdating then
@@ -2193,7 +2230,7 @@ hkPBLK = BlobTab:AddToggle({
     end
 })
 BlobTab:AddButton({
-    Name = "Bring [BLOBMAN]",
+    Name = "Bring <font color='#aa00ff'>[BLOBMAN]</font>",
     Callback = function()
         if hkTargetId and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             hkBringTargets[hkTargetId] = player.Character.HumanoidRootPart.CFrame
